@@ -13,6 +13,9 @@ def main():
     # Declare the queue from which the messages will be received
     channel.queue_declare(queue='sensor_data')
 
+    # Declare an exchange to which the processed results will be published
+    channel.exchange_declare(exchange='processed_results', exchange_type='fanout')
+
     class MeteoData:
         def __init__(self, temperature, humidity):
             self.temperature = temperature
@@ -30,11 +33,19 @@ def main():
         if data['type'] == 'meteo':
             meteo_data = MeteoData(data['data']['temperature'], data['data']['humidity'])
             result_air_sensor = processor.process_meteo_data(meteo_data)
-            print("Air sensor coefficient", result_air_sensor)
+            print("Air sensor coefficient:", result_air_sensor)
+            result = {'type': 'meteo', 'data': result_air_sensor}
         elif data['type'] == 'pollution':
             pollution_data = PollutionData(data['data']['co2'])
             result_pollution_sensor = processor.process_pollution_data(pollution_data)
-            print("Pollution sensor coefficient", result_pollution_sensor)
+            print("Pollution sensor coefficient:", result_pollution_sensor)
+            result = {'type': 'pollution', 'data': result_pollution_sensor}
+
+        # Convert the result to JSON format
+        message = json.dumps(result)
+
+        # Publish the result to the exchange
+        channel.basic_publish(exchange='processed_results', routing_key='', body=message)
 
     # Start consuming messages from the queue
     channel.basic_consume(queue='sensor_data', on_message_callback=callback, auto_ack=True)
