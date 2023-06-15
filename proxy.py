@@ -1,7 +1,7 @@
 import time
 import json
-import redis
 import pika
+import redis
 
 def main():
     # Establish a connection to Redis
@@ -11,8 +11,11 @@ def main():
     connection = pika.BlockingConnection(pika.ConnectionParameters('localhost'))
     channel = connection.channel()
 
-    # Declare the queue for sending data to terminals
-    channel.queue_declare(queue='terminal_data')
+    # Declare the exchange for publishing processed results
+    channel.exchange_declare(exchange='processed_results', exchange_type='fanout')
+
+    # Set to store the coefficients that have been published
+    published_coefficients = set()
 
     while True:
         # Read the processed results from Redis
@@ -31,27 +34,35 @@ def main():
             print("Coefficient from air sensor:", meteo_coefficient)
             print("Coefficient from pollution sensor:", pollution_coefficient)
 
-            # Create a message dictionary with the coefficients
-            message = {
-                'type': 'coefficient',
-                'data': {
-                    'meteo': meteo_coefficient,
-                    'pollution': pollution_coefficient
+            # Check if coefficients have been published before
+            if meteo_coefficient not in published_coefficients:
+                # Create a message dictionary with the meteo and pollution coefficients
+                message = {
+                    'type': 'coefficient',
+                    'data': {
+                        'meteo': meteo_coefficient,
+                        'pollution': pollution_coefficient
+                    }
                 }
-            }
 
-            # Convert the message to JSON format
-            message_json = json.dumps(message)
+                # Convert the message to JSON format
+                message_json = json.dumps(message)
 
-            # Publish the message to the terminal queue
-            channel.basic_publish(exchange='', routing_key='terminal_data', body=message_json)
+                # Publish the coefficients to the exchange
+                channel.basic_publish(exchange='processed_results', routing_key='', body=message_json)
+
+                # Add the coefficients to the published set
+                published_coefficients.add(meteo_coefficient)
+                published_coefficients.add(pollution_coefficient)
 
         # Delay before checking for new results
-        time.sleep(12)
+        time.sleep(3)
 
     # Close the RabbitMQ connection
     connection.close()
 
 if __name__ == "__main__":
     main()
+
+
 
