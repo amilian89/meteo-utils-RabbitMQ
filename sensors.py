@@ -32,7 +32,7 @@ def main():
         channel.basic_publish(exchange='', routing_key='sensor_data', body=pollution_data_json)
 
         # Wait for a specified amount of time before the next iteration
-        time.sleep(5)
+        time.sleep(12)
 
     # Close the connection
     connection.close()
