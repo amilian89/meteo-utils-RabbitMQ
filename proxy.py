@@ -31,11 +31,8 @@ def main():
             meteo_coefficient = meteo_data['data']
             pollution_coefficient = pollution_data['data']
 
-            print("Coefficient from air sensor:", meteo_coefficient)
-            print("Coefficient from pollution sensor:", pollution_coefficient)
-
             # Check if coefficients have been published before
-            if meteo_coefficient not in published_coefficients:
+            if meteo_coefficient and pollution_coefficient not in published_coefficients:
                 # Create a message dictionary with the meteo and pollution coefficients
                 message = {
                     'type': 'coefficient',
@@ -45,6 +42,8 @@ def main():
                     }
                 }
 
+                print("Coeff. from air sensor:", meteo_coefficient)
+                print("Coeff. from pollution sensor:", pollution_coefficient)
                 # Convert the message to JSON format
                 message_json = json.dumps(message)
 
